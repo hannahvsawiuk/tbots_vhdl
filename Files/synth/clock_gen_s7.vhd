@@ -62,38 +62,143 @@ begin
 	InBufferG : IBufG
 	port map(
 		I => Oscillator,
-		O => OscillatorBuffered);
+		O => OscillatorBuffered
+	);
 	
-	-- Use the MMCM advanced primitives to configure a 40MHz clock
-	-- This 40MHz signal is fed into a PLL block to generate the 8,10, and 80MHz clocks
-	StepUpMMCM : MMCME2_ADV
+-- *******************************************************************************************************************
+-- purpose	: Configure a 40MHz clock
+-- info		:
+-- 			- Configuration using MMCM advanced primitives 
+-- 			- The 40MHz signal is fed into a PLL block to generate the 8,10, and 80MHz clocks
+-- *******************************************************************************************************************
+	StepUpMMCM : MMCM 
 	generic map (
-		CLKIN_PERIOD => 1.0e9 / 8.0e6, 	-- 8MHz
-		CLK_FEEDBACK => "NONE",
-		CLKFX_MULTIPLY => 5, 			-- 8MHz * 5 = 40MHz
-		CLKFX_DIVIDE => 1
-	) 									-- don't need a semi
+		CLKIN_PERIOD 	=> 1.0e9 / 8.0e6, 	-- 8MHz
+		CLK_FEEDBACK 	=> "NONE",
+		CLKFX_MULTIPLY 	=> 5, 				-- 8MHz * 5 = 40MHz
+		CLKFX_DIVIDE    => 1,				
+		BANDWIDTH		=> "LOW" 		    -- reduce clock jitter by setting the BANDWIDTH attribute low
+	) 
+
+-- =====================================================================================================================
+-- The LOCKED MMCM/PLL Attribute
+-- 	LOCKED indicates when the MMCM/PLL has achieved phase alignment 
+-- 	1: outputs are valid, 0: outputs are invalid
+-- 	MMCM/PLL automatically locks after power on. No extra reset is required
+-- 	LOCKED will be deasserted if the input clock stops or the phase alignment is violated
+-- 	The MMCM/PLL must be reset after LOCKED is deasserted.
+-- =====================================================================================================================.										
 	port map (
-		CLKIN1 => OscillatorBuffered,
-		RST => '0',
-		CLKFX => PLLInputClock,
-		 => 
-		LOCKED => StepUpMMCMLocked
+		CLKIN1 		=> OscillatorBuffered,
+		RST 		=> '0',
+		CLKINSEL 	=> '1', 				-- select CLKIN1
+		CLKOUT0 	=> PLLInputClock,
+		LOCKED 		=> StepUpMMCMLocked
 	)
 
-	-- Status[2] 
-	-- CLKFX or CLKFX180 output stopped indicator. Held in reset until the LOCKED output is asserted.
-	-- 0: CLKFX and CLKFX180 outputs are toggling
-	-- 1: CLKFX and CLKFX180 outputs are not toggling, even though the LOCKED output can still be High. 
+	PLLReset <= not StepUpMMCMLocked; 		-- active high rst so not the LOCKED attribute value
 
-	-- Locked
-	-- 0: DCM is attempting to lock onto CLKIN frequency. DCM clock outputs are not valid
-	-- 1: DCM is locked onto CLKIN frequency. DCM clock outputs are valid
+-- *******************************************************************************************************************
+-- purpose	: Take the PLL base frequency of 40MHz and create 4 clocks 
+-- info		:
+-- 			- VCO is 40 × 16 = 640 MHz.
+-- 			- Configuration using PLL attributes
+-- *******************************************************************************************************************
+	MainPLL : PLLE2_BASE 
+	generic map (
+		CLKOUT0_DIVIDE 	=> 80, 		-- CLKOUT0 is 640 ÷ 80 = 8
+		CLKOUT0_PHASE 	=> 0.0,
+		CLKOUT1_DIVIDE 	=> 64, 		-- CLKOUT1 is 640 ÷ 64 = 10
+		CLKOUT1_PHASE 	=> 0.0,
+		CLKOUT2_DIVIDE	=> 64, 		-- CLKOUT2 is 640 ÷ 64 = 10
+		CLKOUT2_PHASE 	=> 180.0,
+		CLKOUT3_DIVIDE	=> 8,  		-- CLKOUT3 is 640 ÷ 8  = 80
+		CLKOUT3_PHASE 	=> 0.0,
+		CLKFBOUT_MULT 	=> 16,
+		CLKIN_PERIOD 	=> 1.0e9 / 40.0e6,
+		CLK_FEEDBACK 	=> "CLKFBOUT",
+		BANDWIDTH		=> "LOW" 
+	)
 
-	-- PLL RST is an active HIGH asynchronous reset
-	-- PLL will synchronously re-enable itself when this signal is released
-	-- A reset is required when the input clock conditions change
-	PLLReset <=  or not StepUpMMCMLocked;
+-- *******************************************************************************************************************
+-- purpose	: Connect the PLL output signals to the appropriate output clock
+-- info		: See PLLE2_BASE port list
+-- ******************************************************************************************************************* 
+	
+-- =====================================================================================================================
+-- The RST Attribute
+-- RST is an active HIGH asynchronous reset
+-- PLL will synchronously re-enable itself when this signal is released
+-- A reset is required when the input clock conditions change
+-- =====================================================================================================================.
+	
+	port map (
+		CLKIN1 		=> PLLInputClock,
+		CLKFBIN 	=> PLLFeedbackClock,
+		RST 		=> PLLReset,
+		CLKOUT0 	=> PLLOutputs(0),
+		CLKOUT1 	=> PLLOutputs(1),
+		CLKOUT2 	=> PLLOutputs(2),
+		CLKOUT3 	=> PLLOutputs(3),
+		CLKOUT4 	=> PLLOutputs(4),
+		CLKOUT5 	=> PLLOutputs(5),
+		CLKFBOUT 	=> PLLFeedbackClock,
+		LOCKED		=> PLLLocked
+	);
+
+	-- purpose: matches the PLL outputs (the various clock outputs) to the global buffer and then outputs the buffered PLL outputs
+	BufferGs : for Index in PLLOutputs'range generate
+		BufferG : BUFG
+		port map (
+			I => PLLOutputs(Index),
+			O => BufferedPLLOutputs(Index)
+		);
+	end generate;
+
+	-- assigns buffered PLL clock outputs to the matching desired clocks
+	Clock8MHz 	<= BufferedPLLOutputs(0);
+	Clock10MHz 	<= BufferedPLLOutputs(1);
+	Clock10MHzI <= BufferedPLLOutputs(2);
+	Clock80MHz 	<= BufferedPLLOutputs(3);
+
+	-- MMCM takes input at 8 MHz from PLL and produces output at 1 MHz.
+	StepDownMMCMReset <= not PLLLocked;
+
+	-- generic mapping for the frequency step down block: takes 8MHz as an input and outputs a 1MHz signal
+	StepDownMMCM : MMCME2_ADV
+	generic map (
+		CLKIN1_PERIOD => 1.0e9 / 8.0e6, -- FUCKKKKKKKKKKKK NOOOO range of 0.938-100 fukkkkkkk now have to change the .ucf file fuckkk me
+		COMPENSATION	=> "INTERNAL",
+		CLKDV_DIVIDE => 8.0
+	)
+
+	port map (
+		CLKIN 	=> BufferedPLLOutputs(0),
+		CLKFB 	=> StepDownDCMFeedbackBuffered,
+		RST 	=> StepDownDCMReset,
+		CLK0 	=> StepDownDCMFeedback,
+		CLKDV 	=> StepDownDCMOut,
+		LOCKED 	=> StepDownDCMLocked
+	);
+	
+	-- maps feedback buffer ports with signals
+	StepDownDCMFeedbackBufferG : BUFG
+	port map (
+		I => StepDownDCMFeedback,
+		O => StepDownDCMFeedbackBuffered
+	);
+
+	StepDownDCMOutBufferG : BUFG
+	port map (
+		I => StepDownDCMOut,
+		O => Clock1MHzTemp
+	);
+
+	Clock1MHz <= Clock1MHzTemp;
+
+	-- Report to the higher level whether all clocks are ready to use.
+	Ready <= to_boolean(StepUpDCMLocked and PLLLocked and StepDownDCMLocked);
+end architecture Behavioural;
 
 
 
