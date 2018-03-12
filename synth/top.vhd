@@ -217,20 +217,36 @@ begin
 		IntPin => MRFInterruptPin,
 		ResetPin => MRFResetPin,
 		WakePin => MRFWakePin);
-	MRFClockODDR2 : ODDR2
-	generic map(
-		DDR_ALIGNMENT => "NONE",
-		INIT => '0',
-		SRTYPE => "SYNC")
-	port map(
-		D0 => to_stdulogic(MRFClockOE),
-		D1 => '0',
-		C0 => Clock10MHz,
-		C1 => Clock10MHzI,
-		CE => '1',
-		R => to_stdulogic(Reset),
-		S => '0',
-		Q => MRFClockPin);
+
+	MRFClockODDR : ODDR
+	generic map ( 
+		DDR_CLK_EDGE 	=> "OPPOSITE_EDGE", -- default value
+		INIT 			=> '1',
+		SRTYPE 			=> "SYNC"
+	)
+	port map (
+		Q 	=> MRFClockPin,
+		CE 	=> '1',
+		D1	=> to_stdulogic (not MRFClockOE),
+		D2	=> '1',
+		R 	=> to_stdulogic(Reset),
+		S 	=> '0' -- only one of R and S can be set high at any time, or an error will occur\
+	);
+
+	-- MRFClockODDR2 : ODDR2
+	-- generic map(
+	-- 	DDR_ALIGNMENT => "NONE",
+	-- 	INIT => '0',
+	-- 	SRTYPE => "SYNC")
+	-- port map(
+	-- 	D0 => to_stdulogic(MRFClockOE),
+	-- 	D1 => '0',
+	-- 	C0 => Clock10MHz,
+	-- 	C1 => Clock10MHzI,
+	-- 	CE => '1',
+	-- 	R => to_stdulogic(Reset),
+	-- 	S => '0',
+	-- 	Q => MRFClockPin);
 
 	-- Instantiate the Hall sensor filters and the motors.
 	WheelHallFilters : for Motor in HallsPin'range generate
@@ -271,20 +287,36 @@ begin
 		CSPin => AccelCSPin,
 		MOSIPin => AccelMOSIPin,
 		MISOPin => AccelMISOPin);
-	AccelClockODDR2 : ODDR2
+
+	AccelClockODDR : ODDR
 	generic map(
-		DDR_ALIGNMENT => "NONE",
-		INIT => '1',
-		SRTYPE => "SYNC")
-	port map(
-		D0 => to_stdulogic(not AccelClockOE),
-		D1 => '1',
-		C0 => Clock10MHz,
-		C1 => Clock10MHzI,
-		CE => '1',
-		R => '0',
-		S => to_stdulogic(Reset),
-		Q => AccelClockPin);
+		DDR_CLK_EDGE 	=> "OPPOSITE_EDGE", -- default value
+		INIT 			=> '1',
+		SRTYPE 			=> "SYNC"
+	)
+	port map (
+		Q 	=> AccelClockPin,
+		CE 	=> '1',
+		D1	=> to_stdulogic (not AccelClockOE),
+		D2	=> '1',
+		S 	=> to_stdulogic(Reset),
+		R 	=> '0' -- only one of R and S can be set high at any time, or an error will occur
+	);
+
+	-- AccelClockODDR2 : ODDR
+	-- generic map(
+	-- 	DDR_ALIGNMENT => "NONE",
+	-- 	INIT => '1',
+	-- 	SRTYPE => "SYNC")
+	-- port map(
+	-- 	D0 => to_stdulogic(not AccelClockOE),
+	-- 	D1 => '1',
+	-- 	C0 => Clock10MHz,
+	-- 	C1 => Clock10MHzI,
+	-- 	CE => '1',
+	-- 	R => '0',
+	-- 	S => to_stdulogic(Reset),
+	-- 	Q => AccelClockPin);
 
 	-- Instantiate the gyro.
 	Gyro : entity work.Gyro(RTL)
@@ -300,21 +332,37 @@ begin
 		CSPin => GyroCSPin,
 		MOSIPin => GyroMOSIPin,
 		MISOPin => GyroMISOPin);
-		
-	GyroClockODDR2 : ODDR2
-	generic map(
-		DDR_ALIGNMENT => "NONE",
-		INIT => '1',
-		SRTYPE => "SYNC")
-	port map(
-		D0 => to_stdulogic(not GyroClockOE),
-		D1 => '1',
-		C0 => Clock10MHz,
-		C1 => Clock10MHzI,
-		CE => '1',
-		R => '0',
-		S => to_stdulogic(Reset),
-		Q => GyroClockPin);
+
+	GyroClockODDR : ODDR
+		generic map (
+			DDR_CLK_EDGE 	=> "OPPOSITE_EDGE", -- default value
+			INIT 			=> '1',
+			SRTYPE 			=> "SYNC"
+		)
+		-- The ODDR primitive contains both set and reset pins. However only one can be used per ODDR. 
+		-- As a result, S/R is described instead of separate set and reset pins.
+		port map (
+			Q 	=> GyroClockPin,
+			CE 	=> '1',
+			D1	=> to_stdulogic (not GyroClockOE),
+			D2	=> '1',
+			S 	=> to_stdulogic(Reset),
+			R 	=> '0' -- only one of R and S can be set high at any time, or an error will occur
+		);
+	-- GyroClockODDR2 : ODDR2
+	-- generic map(
+	-- 	DDR_ALIGNMENT => "NONE",
+	-- 	INIT => '1',
+	-- 	SRTYPE => "SYNC")
+	-- port map(
+	-- 	D0 => to_stdulogic(not GyroClockOE),
+	-- 	D1 => '1',
+	-- 	C0 => Clock10MHz,
+	-- 	C1 => Clock10MHzI,
+	-- 	CE => '1',
+	-- 	R => '0',
+	-- 	S => to_stdulogic(Reset),
+	-- 	Q => GyroClockPin);
 
 	-- Instantiate the magic number value.
 	MagicNumber : entity work.ReadableRegister(RTL)
