@@ -56,6 +56,11 @@ begin
 end architecture RTL;
 
 
+library ieee;
+use ieee.numeric_std.all;
+use ieee.std_logic_1164.all;
+use work.motor_common.all;
+use work.types.all;
 
 --! Janky dribbler commutation
 entity DribblerHallSpeed is
@@ -91,9 +96,9 @@ architecture RTL of DribblerHallSpeed is
 			return true;
 		--! Forced commutation state combinations
 		elsif HallBits = "010111" then 
-			return true
+			return true;
 		elsif HallBits = "111001" then 
-			return true
+			return true;
 		--! Invalid state combinations
 		else
 			return false;

@@ -65,7 +65,10 @@ begin
 	end process;
 end architecture RTL;
 
-
+library ieee;
+use ieee.std_logic_1164.all;
+use work.motor_common.all;
+use work.types.all;
 
 --! Janky dribbler commutation
 entity DribblerCommutator is
@@ -108,7 +111,7 @@ begin
 			end if;
 		end if;
 	end process;
-	StuckHigh <= StuckHighBits=(0) or StuckHighBits(1) or StuckHighBits(2);
+	StuckHigh <= StuckHighBits(0) or StuckHighBits(1) or StuckHighBits(2);
 	StuckLow <= StuckLowBits(0) or StuckLowBits(1) or StuckLowBits(2);
 
 	Swapped <= Hall when Direction = REVERSE else not Hall;
