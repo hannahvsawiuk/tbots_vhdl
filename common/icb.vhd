@@ -14,7 +14,7 @@ use work.types.all;
 entity ICB is
 	generic(
 		--! \brief The number of endpoints communicating over the ICB.
-		EndpointCount : natural := 11; -- edit
+		EndpointCount : natural;
 
 		--! \brief CRC generator polynomial.
 		--!
