@@ -1,0 +1,25 @@
+package commands is
+	constant COMMAND_READ_DNA : natural := 16#80#;
+	constant COMMAND_READ_SWITCHES : natural := 16#81#;
+	constant COMMAND_WRITE_LEDS : natural := 16#02#;
+	constant COMMAND_GET_CLEAR_IRQS : natural := 16#90#;
+	constant COMMAND_MRF_DA_READ_SHORT : natural := 16#20#;
+	constant COMMAND_MRF_DA_WRITE_SHORT : natural := 16#21#;
+	constant COMMAND_MRF_DA_READ_LONG : natural := 16#22#;
+	constant COMMAND_MRF_DA_WRITE_LONG : natural := 16#23#;
+	constant COMMAND_MRF_DA_GET_DATA : natural := 16#A4#;
+	constant COMMAND_MRF_DA_GET_INT : natural := 16#A5#;
+	constant COMMAND_MRF_DA_SET_AUX : natural := 16#26#;
+	constant COMMAND_MRF_OFFLOAD : natural := 16#27#;
+	constant COMMAND_MRF_RX_GET_SIZE : natural := 16#A8#;
+	constant COMMAND_MRF_RX_READ : natural := 16#A9#;
+	constant COMMAND_MRF_TX_PUSH : natural := 16#2A#;
+	constant COMMAND_MRF_TX_GET_STATUS : natural := 16#AB#;
+	constant COMMAND_MRF_OFFLOAD_DISABLE : natural := 16#2C#;
+	constant COMMAND_MOTORS_SET : natural := 16#30#;
+	constant COMMAND_MOTORS_GET_HALL_COUNT : natural := 16#B1#;
+	constant COMMAND_MOTORS_GET_CLEAR_STUCK_HALLS : natural := 16#B2#;
+	constant COMMAND_SENSORS_GET_ACCEL : natural := 16#C0#;
+	constant COMMAND_SENSORS_GET_GYRO : natural := 16#C1#;
+	constant COMMAND_GET_MAGIC : natural := 16#D0#;
+end package commands;
