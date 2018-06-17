@@ -5,14 +5,15 @@ use work.motor_common.all;
 use work.types.all;
 
 --! Measures the speed of a motor by counting Hall sensor edges.
-entity MotorHallSpeed is
+--! Janky dribbler commutation
+entity DribblerHallSpeed is
 	port(
 		HostClock : in std_ulogic; --! The system clock.
 		Hall : in boolean_vector(0 to 2); --! The Hall sensor states.
 		Value : buffer hall_count); --! The accumulated count.
-end entity MotorHallSpeed;
+end entity DribblerHallSpeed;
 
-architecture RTL of MotorHallSpeed is
+architecture RTL of DribblerHallSpeed is
 	signal CountInternal : hall_count;
 	signal OldHall : boolean_vector(0 to 2);
 
@@ -23,18 +24,24 @@ architecture RTL of MotorHallSpeed is
 			HallBits(I) := to_stdulogic(Hall(I));
 			HallBits(I + 3) := to_stdulogic(OldHall(I));
 		end loop;
+		--! HallBits = {old Hall, new Hall}
 		if HallBits = "100110" then
 			return true;
 		elsif HallBits = "110010" then
 			return true;
 		elsif HallBits = "010011" then
 			return true;
+        elsif HallBits = "010111" then --! Forced commutation state combinations
+            return true;
 		elsif HallBits = "011001" then
 			return true;
+        elsif HallBits = "111001" then --! Forced commutation state combinations
+            return true;
 		elsif HallBits = "001101" then
 			return true;
 		elsif HallBits = "101100" then
 			return true;
+		--! Invalid state combinations
 		else
 			return false;
 		end if;
@@ -43,9 +50,9 @@ begin
 	process(HostClock) is
 	begin
 		if rising_edge(HostClock) then
-			if Hall /= OldHall then 
+			if Hall /= OldHall then --! /= inequality check, returns boolean
 				if IsForward(Hall, OldHall) then
-					Value <= Value + 1;
+					Value <= Value + 1; --! hall count accumulator
 				elsif IsForward(OldHall, Hall) then
 					Value <= Value - 1;
 				end if;

@@ -114,6 +114,12 @@ begin
 end architecture RTL;
 
 --
+library ieee;
+use ieee.numeric_std.all;
+use ieee.std_logic_1164.all;
+use work.motor_common.all;
+use work.types.all;
+
 entity Dribbler is
 	generic(
 		PWMPhase : natural); --! The reset value of the PWM counter.

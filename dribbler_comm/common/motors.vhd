@@ -21,6 +21,7 @@ end entity Motors;
 
 architecture RTL of Motors is
 	constant MotorCount : positive := 5; --! Motor 5 = dribbler 
+	constant dribblerIndex : positive := 4;
 
 	constant SETTINGS_RAW_RESET_VALUE : byte_vector(0 to MotorCount * 2 - 1) := (others => X"00");
 
@@ -155,23 +156,23 @@ begin
 				PhasesHPin => PhasesHPin(I),
 				PhasesLPin => PhasesLPin(I));
 		end generate Motor;
-		--! Dribbler motor driver (janky)
-		Dribbler : if (I = 4) generate
-			DribblerMotor : entity work.Dribbler(RTL)
+	end generate Motors;
+
+	-- instantiate dribbler entities
+	dribblerMotor : entity work.Dribbler(RTL)
 			generic(
-				PWMPhase => I * 255 / MotorCount)
+				PWMPhase => dribblerIndex * 255 / MotorCount)
 			port map(
 				Reset => Reset,
 				HostClock => HostClock,
 				PWMClock => PWMClock,
-				DriveMode => DriveModes(I),
-				HallCount => HallCounts(I),
-				StuckLow => StuckLow(I),
-				StuckHigh => StuckHigh(I),
-				HallFiltered => HallsFiltered(I),
-				HallFilteredValid => HallsFilteredValid(I)(0),
-				PhasesHPin => PhasesHPin(I),
-				PhasesLPin => PhasesLPin(I));
-		end generate Dribbler;
-	end generate Motors;
+				DriveMode => DriveModes(dribblerIndex),
+				HallCount => HallCounts(dribblerIndex),
+				StuckLow => StuckLow(dribblerIndex),
+				StuckHigh => StuckHigh(dribblerIndex),
+				HallFiltered => HallsFiltered(dribblerIndex),
+				HallFilteredValid => HallsFilteredValid(dribblerIndex)(0),
+				PhasesHPin => PhasesHPin(dribblerIndex),
+				PhasesLPin => PhasesLPin(dribblerIndex));
+
 end architecture RTL;
