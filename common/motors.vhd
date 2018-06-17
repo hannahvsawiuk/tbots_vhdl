@@ -20,7 +20,7 @@ entity Motors is
 end entity Motors;
 
 architecture RTL of Motors is
-	constant MotorCount : positive := 5;
+	constant MotorCount : positive := 5; --! Motor 5 = dribbler 
 
 	constant SETTINGS_RAW_RESET_VALUE : byte_vector(0 to MotorCount * 2 - 1) := (others => X"00");
 
@@ -121,6 +121,7 @@ begin
 		end loop;
 	end process;
 
+	-- connection to MCU
 	-- Instantiate a readable register to send Hall sensor failure flags to the MCU.
 	StuckRR : entity work.ReadableRegister(RTL)
 	generic map(
@@ -136,20 +137,41 @@ begin
 
 	-- Instantiate a set of motor drivers.
 	Motors : for I in DriveModes'range generate
-		Motor : entity work.Motor(RTL)
-		generic map(
-			PWMPhase => I * 255 / MotorCount)
-		port map(
-			Reset => Reset,
-			HostClock => HostClock,
-			PWMClock => PWMClock,
-			DriveMode => DriveModes(I),
-			HallCount => HallCounts(I),
-			StuckLow => StuckLow(I),
-			StuckHigh => StuckHigh(I),
-			HallFiltered => HallsFiltered(I),
-			HallFilteredValid => HallsFilteredValid(I)(0),
-			PhasesHPin => PhasesHPin(I),
-			PhasesLPin => PhasesLPin(I));
-	end generate;
+		Motor : if (I < 4) generate
+			--! Driver for the wheel motors
+			WheelMotor : entity work.Motor(RTL) --! instantiates Motor RTL module
+			generic map(
+				PWMPhase => I * 255 / MotorCount)
+			port map(
+				Reset => Reset,
+				HostClock => HostClock,
+				PWMClock => PWMClock,
+				DriveMode => DriveModes(I),
+				HallCount => HallCounts(I),
+				StuckLow => StuckLow(I),
+				StuckHigh => StuckHigh(I),
+				HallFiltered => HallsFiltered(I),
+				HallFilteredValid => HallsFilteredValid(I)(0),
+				PhasesHPin => PhasesHPin(I),
+				PhasesLPin => PhasesLPin(I));
+		end generate Motor;
+		--! Dribbler motor driver (janky)
+		Dribbler : if (I = 4) generate
+			DribblerMotor : entity work.Dribbler(RTL)
+			generic(
+				PWMPhase => I * 255 / MotorCount)
+			port map(
+				Reset => Reset,
+				HostClock => HostClock,
+				PWMClock => PWMClock,
+				DriveMode => DriveModes(I),
+				HallCount => HallCounts(I),
+				StuckLow => StuckLow(I),
+				StuckHigh => StuckHigh(I),
+				HallFiltered => HallsFiltered(I),
+				HallFilteredValid => HallsFilteredValid(I)(0),
+				PhasesHPin => PhasesHPin(I),
+				PhasesLPin => PhasesLPin(I));
+		end generate Dribbler;
+	end generate Motors;
 end architecture RTL;
