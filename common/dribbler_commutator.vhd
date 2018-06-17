@@ -4,7 +4,8 @@ use work.motor_common.all;
 use work.types.all;
 
 --! \brief Generates a commutation pattern given Hall sensor inputs and a desired direction.
-entity MotorCommutator is
+--! Janky dribbler commutation
+entity DribblerCommutator is
 	port(
 		Reset : in boolean; --! The system reset signal.
 		HostClock : in std_ulogic; --! The system clock.
@@ -14,9 +15,9 @@ entity MotorCommutator is
 		Phases : buffer phase_drive_mode_vector(0 to 2); --! The phase drive pattern.
 		StuckHigh : buffer boolean; --! Whether all Hall sensors are stuck high.
 		StuckLow : buffer boolean); --! Whether all Hall sensors are stuck low.
-end entity MotorCommutator;
+end entity DribblerCommutator;
 
-architecture RTL of MotorCommutator is
+architecture RTL of DribblerCommutator is
 	signal StuckHighNow, StuckLowNow : boolean;
 	signal StuckHighBits, StuckLowBits : boolean_vector(0 to 2);
 	signal Swapped : boolean_vector(0 to 2);
@@ -27,18 +28,18 @@ begin
 	-- state (which is an invalid encoding), we consider a stuck sensor to exist.
 	-- We consider the stuck sensor to have cleared once every sensor has been
 	-- observed in the opposite state at least once.
-	StuckHighNow <= Hall(0) and Hall(1) and Hall(2);
+	StuckHighNow <= Hall(0) and Hall(1) and Hall(2); 
 	StuckLowNow <= (not Hall(0)) and (not Hall(1)) and (not Hall(2));
 	process(HostClock) is
 		variable I : natural range 0 to 2;
 	begin
 		if rising_edge(HostClock) then
-			if not HallValid and not StuckHighNow then -- bits stuck if not valid and all low
+			if not HallValid then 
 				StuckHighBits <= (false, false, false);
 				StuckLowBits <= (false, false, false);
-			else -- else if all Hall high (invalid state) and
+			else
 				for I in 0 to 2 loop
-					StuckHighBits(I) <= (StuckHighBits(I) and Hall(I)) or StuckHighNow;
+					StuckHighBits(I) <= (StuckHighBits(I) and Hall(I)); -- removed or StuckHighNow
 					StuckLowBits(I) <= (StuckLowBits(I) and not Hall(I)) or StuckLowNow;
 				end loop;
 			end if;
@@ -52,7 +53,7 @@ begin
 	process(HallValid, Swapped, StuckHighNow, StuckLowNow) is
 	begin
 		for I in Phases'range loop
-			if (not HallValid) or StuckHighNow or StuckLowNow then
+			if (not HallValid) or StuckLowNow then -- remove or StuckHighNow to forc4
 				Phases(I) <= FLOAT;
 			elsif not Swapped(I) and Swapped((I + 1) mod 3) then
 				Phases(I) <= LOW;
