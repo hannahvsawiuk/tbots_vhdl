@@ -159,20 +159,20 @@ begin
 	end generate Motors;
 
 	-- instantiate dribbler entities
-	dribblerMotor : entity work.Dribbler(RTL)
-			generic(
-				PWMPhase => dribblerIndex * 255 / MotorCount)
-			port map(
-				Reset => Reset,
-				HostClock => HostClock,
-				PWMClock => PWMClock,
-				DriveMode => DriveModes(dribblerIndex),
-				HallCount => HallCounts(dribblerIndex),
-				StuckLow => StuckLow(dribblerIndex),
-				StuckHigh => StuckHigh(dribblerIndex),
-				HallFiltered => HallsFiltered(dribblerIndex),
-				HallFilteredValid => HallsFilteredValid(dribblerIndex)(0),
-				PhasesHPin => PhasesHPin(dribblerIndex),
-				PhasesLPin => PhasesLPin(dribblerIndex));
+	Dribblers : entity work.Dribbler(RTL)
+	generic map(
+		PWMPhase => dribblerIndex * 255 / MotorCount)
+	port map(
+		Reset => Reset,
+		HostClock => HostClock,
+		PWMClock => PWMClock,
+		DriveMode => DriveModes(dribblerIndex),
+		HallCount => HallCounts(dribblerIndex),
+		StuckLow => StuckLow(dribblerIndex),
+		StuckHigh => StuckHigh(dribblerIndex),
+		HallFiltered => HallsFiltered(dribblerIndex),
+		HallFilteredValid => HallsFilteredValid(dribblerIndex)(0),
+		PhasesHPin => PhasesHPin(dribblerIndex),
+		PhasesLPin => PhasesLPin(dribblerIndex));
 
 end architecture RTL;
